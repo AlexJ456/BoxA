@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Box Breathing</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #000;
+            color: #ffcc80;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #home {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .time-btn {
+            background: #ff9900;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .time-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #exercise {
+            display: none;
+            position: relative;
+            text-align: center;
+        }
+
+        #box-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+        }
+
+        #box {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #ffcc80;
+            position: absolute;
+        }
+
+        #circle {
+            width: 20px;
+            height: 20px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            position: absolute;
+            transition: transform 0.3s;
+        }
+
+        #phase {
+            font-size: 1.5em;
+            margin: 20px;
+        }
+
+        #total-time {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8em;
+        }
+
+        @keyframes inhale {
+            from { transform: translateY(280px); }
+            to { transform: translateY(0); }
+        }
+
+        @keyframes hold {
+            from { transform: translateX(0); }
+            to { transform: translateX(280px); }
+        }
+
+        @keyframes exhale {
+            from { transform: translateY(0); }
+            to { transform: translateY(280px); }
+        }
+
+        @keyframes wait {
+            from { transform: translateX(280px); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="home">
+        <h1>Box Breathing</h1>
+        <button class="time-btn" onclick="setTime(2)">2 min</button>
+        <button class="time-btn" onclick="setTime(5)">5 min</button>
+        <button class="time-btn" onclick="setTime(10)">10 min</button>
+        <button class="time-btn" onclick="startExercise()">Start</button>
+    </div>
+
+    <div id="exercise">
+        <div id="phase">Inhale</div>
+        <div id="total-time">00:00</div>
+        <div id="box-container">
+            <div id="box"></div>
+            <div id="circle"></div>
+        </div>
+        <div id="timer">00:00</div>
+    </div>
+
+    <script>
+        let startTime, timeLimit, interval, currentPhase = 'inhale';
+        const phaseDuration = 4000;
+        const phases = ['inhale', 'hold', 'exhale', 'wait'];
+        let circle = document.getElementById('circle');
+        let shouldStop = false;
+
+        function setTime(minutes) {
+            timeLimit = minutes * 60 * 1000;
+        }
+
+        function startExercise() {
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('exercise').style.display = 'block';
+            startTime = Date.now();
+            startPhase('inhale');
+            updateTotalTime();
+            interval = setInterval(updateTotalTime, 1000);
+        }
+
+        function startPhase(phase) {
+            currentPhase = phase;
+            document.getElementById('phase').textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
+            circle.style.animation = 'none';
+            void circle.offsetWidth;
+
+            switch(phase) {
+                case 'inhale':
+                    circle.style.transform = 'translateY(280px)';
+                    circle.style.animation = 'inhale 4s linear forwards';
+                    break;
+                case 'hold':
+                    circle.style.transform = 'translateY(0)';
+                    circle.style.animation = 'hold 4s linear forwards';
+                    break;
+                case 'exhale':
+                    circle.style.transform = 'translate(280px, 0)';
+                    circle.style.animation = 'exhale 4s linear forwards';
+                    break;
+                case 'wait':
+                    circle.style.transform = 'translate(280px, 280px)';
+                    circle.style.animation = 'wait 4s linear forwards';
+                    break;
+            }
+
+            setTimeout(() => {
+                if (shouldStop && currentPhase === 'exhale') {
+                    endExercise();
+                } else {
+                    const nextPhase = phases[(phases.indexOf(currentPhase) + 1) % 4];
+                    startPhase(nextPhase);
+                    checkTimeLimit();
+                }
+            }, phaseDuration);
+        }
+
+        function checkTimeLimit() {
+            if (!timeLimit) return;
+            const elapsedTime = Date.now() - startTime;
+            if (elapsedTime >= timeLimit) {
+                shouldStop = true;
+            }
+        }
+
+        function updateTotalTime() {
+            const totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('total-time').textContent = `${minutes}:${seconds}`;
+        }
+
+        function endExercise() {
+            clearInterval(interval);
+            alert('Session complete!');
+            window.location.reload();
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker error:', err));
+        }
+    </script>
+</body>
+</html>
